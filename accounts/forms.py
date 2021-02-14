@@ -6,7 +6,7 @@ class ProfileForm(forms.ModelForm):
     class Meta:
         model = CustomUser
         fields = ['about', 'email']
-    
+
     def clean_email(self):
         data = self.cleaned_data['email']
         if data:
@@ -18,7 +18,7 @@ class RegisterForm(forms.ModelForm):
     MIN_LENGTH = 8
     class Meta:
         model = CustomUser
-        fields = ['username', 'password', 'email']
+        fields = ['username', 'password']
         widgets = {
             'password': forms.PasswordInput(),
         }
@@ -33,7 +33,7 @@ class CreateInviteForm(forms.ModelForm):
     class Meta:
         model = Invitation
         fields = ['invited_email_address']
-    
+
     def clean_invited_email_address(self):
         invited_email_address = self.cleaned_data['invited_email_address']
         if invited_email_address:

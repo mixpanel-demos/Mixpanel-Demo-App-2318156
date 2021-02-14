@@ -13,10 +13,14 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import sys
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Package deps with the repo to make installation quicker on repl.it
+EXTERNALS = os.path.join(BASE_DIR, "..", "externals")
+sys.path = ["", EXTERNALS] + sys.path
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/2.2/howto/deployment/checklist/
@@ -25,14 +29,11 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = 'TODO' # TODO
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 
 USE_X_FORWARDED_HOST = True
-ALLOWED_HOSTS = [
-    'news.python.sc',
-    'localhost',
-]
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -53,7 +54,6 @@ INSTALLED_APPS = [
     'news',
     'emaildigest',
 
-    
 ]
 
 MIDDLEWARE = [
@@ -166,7 +166,7 @@ LOGIN_REDIRECT_URL = '/'
 
 
 
-ACCEPT_UNINVITED_REGISTRATIONS = False
+ACCEPT_UNINVITED_REGISTRATIONS = True
 
 
 SITE_NAME = 'Pythonic News'
