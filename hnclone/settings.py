@@ -169,8 +169,8 @@ LOGIN_REDIRECT_URL = '/'
 ACCEPT_UNINVITED_REGISTRATIONS = True
 
 
-SITE_NAME = 'Pythonic News'
-SITE_URL = 'https://news.python.sc'
-SITE_DOMAIN = 'news.python.sc'
+SITE_NAME = 'Data News'
+SITE_URL = 'https://news.mixpanel.com'
+SITE_DOMAIN = 'news.mixpanel.com'
 
 X_FRAME_OPTIONS = '*'
