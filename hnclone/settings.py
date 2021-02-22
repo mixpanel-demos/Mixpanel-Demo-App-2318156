@@ -172,3 +172,5 @@ ACCEPT_UNINVITED_REGISTRATIONS = True
 SITE_NAME = 'Pythonic News'
 SITE_URL = 'https://news.python.sc'
 SITE_DOMAIN = 'news.python.sc'
+
+X_FRAME_OPTIONS = '*'
