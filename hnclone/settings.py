@@ -69,6 +69,7 @@ MIDDLEWARE = [
     # 'django.middleware.gzip.GZipMiddleware',
     #'htmlmin.middleware.HtmlMinifyMiddleware', # TODO: When activated, Django Debug Toolbar has JS issues
     'htmlmin.middleware.MarkRequestMiddleware',
+    'hnclone.middleware.mixpanel_middleware',
 ]
 
 ROOT_URLCONF = 'hnclone.urls'
@@ -175,7 +176,7 @@ SITE_DOMAIN = 'news.mixpanel.com'
 
 X_FRAME_OPTIONS = '*'
 
-MIXPANEL_PROJECT_TOKEN = '<MIXPANEL_PROJECT_TOKEN>'
-MIXPANEL_PROJECT_ID = '<MIXPANEL_PROJECT_ID>'
+MIXPANEL_PROJECT_TOKEN = '6888bfdec29d84ab2d36ae18c57b8535'
+MIXPANEL_PROJECT_ID = '1939595'
 MIXPANEL_ADMIN_USERNAME = '<MIXPANEL_ADMIN_USERNAME>'
 MIXPANEL_ADMIN_PASSWORD = '<MIXPANEL_ADMIN_PASSWORD>'

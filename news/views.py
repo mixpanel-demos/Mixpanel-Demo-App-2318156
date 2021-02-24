@@ -4,6 +4,9 @@ from django.http import HttpResponseRedirect, HttpResponse, Http404, HttpRespons
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.urls import reverse
+from django.views.decorators.csrf import csrf_exempt
+
+import requests
 
 from .models import Item, Story, Comment, Vote
 from accounts.models import CustomUser
@@ -42,6 +45,8 @@ from django.views.decorators.cache import cache_page
 
 from django.db import connection
 
+from mixpanel import Mixpanel
+mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN)
 
 def _one_page_back(request):
     page = int(request.GET.get('p', 0))
@@ -97,7 +102,7 @@ def _front_page(paging_size=settings.PAGING_SIZE, page=0, add_filter={}, add_q=[
                 .annotate(g=Value(1.8, output_field=fields.FloatField())) \
                 .annotate(formula=formula) \
                 .order_by('-formula')[(page*paging_size):(page+1)*(paging_size)]
-    else: 
+    else:
         raise NotImplementedError("No frontpage magic for database engine %s implemented"%(connection.vendor))
 
 
@@ -253,10 +258,16 @@ def _vote(request, pk, vote=None, unvote=False):
                     return HttpResponseForbidden()
             vote = Vote(vote=vote, item=item, user=request.user)
             vote.save()
+            mp.track(request.COOKIES['sess'], "Downvote" if vote < 0 else "Upvote", {
+                "item_id": pk,
+            })
             return HttpResponse("OK %s"%(vote.pk))
     if unvote:
         if request.method=="POST":
             Vote.objects.filter(item=item, user=request.user).delete()
+            mp.track(request.COOKIES['sess'], "Remove vote", {
+                "item_id": pk,
+            })
             return HttpResponse("OK")
 
 
@@ -287,7 +298,7 @@ def save(request):
 
 
 def _item_story_comment(pk):
-    try: 
+    try:
         # .prefetch_related('children', 'parent')
         item = Item.objects.select_related('story', 'comment', 'user', 'parent').prefetch_related('children').get(pk=pk)
     except Exception as e:
@@ -323,6 +334,10 @@ def item(request, pk): # DONE
         if request.method == 'POST':
             if comment_form.is_valid():
                 comment = comment_form.save()
+                mp.track(request.COOKIES['sess'], "Comment posted", {
+                    "comment_id": str(comment.pk),
+                    "item_id": str(item.pk),
+                })
                 return HttpResponseRedirect(story.get_absolute_url() + '#' + str(comment.pk))
     else:
         comment_form = None
@@ -348,6 +363,9 @@ def item_edit(request, pk):
     if request.method=="POST":
         if form.is_valid():
             item = form.save()
+            mp.track(request.COOKIES['sess'], "Item edited", {
+                "item_id": str(item.pk),
+            })
             return HttpResponseRedirect(story.get_absolute_url() + '#' + str(item.pk))
     return render(request, 'news/item_edit.html', {'item': item, 'edit_form': form})
 
@@ -364,6 +382,9 @@ def item_delete(request, pk):
         if comment is not None:
             redirect_url = item.to_story.get_absolute_url()
         item.delete()
+        mp.track(request.COOKIES['sess'], "Item deleted", {
+            "item_id": str(item.pk),
+        })
         return HttpResponseRedirect(redirect_url)
     return render(request, 'news/item_delete.html', {'item': item})
 
@@ -381,6 +402,9 @@ def submit(request): # DONE
     if request.method=="POST":
         if form.is_valid():
             instance = form.save()
+            mp.track(request.COOKIES['sess'], "Story submitted", {
+                "item_id": str(instance.pk),
+            })
             return HttpResponseRedirect(instance.get_absolute_url())
     return render(request, 'news/submit.html', {'form': form})
 
@@ -388,7 +412,7 @@ def submit(request): # DONE
 def robots_txt(request):
     return HttpResponse("""
 User-agent: *
-Disallow: 
+Disallow:
     """, content_type='text/plain')
 
 def humans_txt(request):
@@ -399,3 +423,72 @@ def humans_txt(request):
 
 def bookmarklet(request):
     return render(request, 'news/bookmarklet.html')
+
+
+# Mixpanel API Proxy
+
+def _filter_headers(headers):
+    excluded_headers = ['content-encoding', 'content-length', 'transfer-encoding', 'connection', 'access-control-allow-credentials', 'access-control-allow-origin']
+    return [(name, value) for (name, value) in headers
+            if name.lower() not in excluded_headers]
+
+def _set_headers(http_response, headers):
+    for name, value in headers:
+        http_response[name] = value
+
+def js_lib(request):
+    '''Proxy the full version of the JS SDK'''
+    resp = requests.get('https://cdn.mxpnl.com/libs/mixpanel-2-latest.js')
+    headers = _filter_headers(resp.raw.headers.items())
+    ret = HttpResponse(resp.content, status=resp.status_code)
+    _set_headers(ret, headers)
+    return ret
+
+def js_lib_minified(request):
+    '''Proxy the minified version of the JS SDK'''
+    resp = requests.get('https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js')
+    headers = _filter_headers(resp.raw.headers.items())
+    ret = HttpResponse(resp.content, status=resp.status_code)
+    _set_headers(ret, headers)
+    return ret
+
+@csrf_exempt
+def api_request(request, endpoint=""):
+    """A catch-all route that proxies https://api.mixpanel.com
+
+    This provides support for all of the Mixpanel Ingestion API endpoints in a single route.
+    You could break this into multiple routes for /track, /engage, and /groups if you want
+    more control over each request type.
+    """
+
+    # /decide is hosted on a different subdomain
+    mixpanel_url = 'https://decide.mixpanel.com' if endpoint == 'decide' else 'https://api.mixpanel.com'
+
+    # This relays the client's IP for geolocation lookup
+    # The method via which you can retrieve the "real" client IP
+    # is implementation specific so you may need to change this logic.
+    if 'HTTP_X_FORWARDED_FOR' in request.META:
+        ip = request.META['HTTP_X_FORWARDED_FOR']
+    elif 'HTTP_X_REAL_IP' in request.META:
+        ip = request.META['HTTP_X_REAL_IP']
+    elif 'REMOTE_ADDR' in request.META:
+        ip = request.META['REMOTE_ADDR']
+
+    headers = {'X-REAL-IP': ip}
+
+    # pass the request directly to Mixpanel
+    resp = requests.request(
+        method=request.method,
+        url='%s/%s' % (mixpanel_url, endpoint),
+        headers=headers,
+        params=request.GET,
+        data=request.POST,
+    )
+
+    # filter out some irrelevant response headers
+    headers = _filter_headers(resp.raw.headers.items())
+
+    # return the response from Mixpanel
+    ret = HttpResponse(resp.content, status=resp.status_code)
+    _set_headers(ret, headers)
+    return ret

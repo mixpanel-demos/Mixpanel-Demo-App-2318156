@@ -15,8 +15,8 @@ urlpatterns = [
     path('ask', views.ask, name="ask"),
     path('zen', views.zen, name="zen"),
     path('item/<uuid:pk>', views.item, name="item"),
-    path('item/<uuid:pk>/upvote', views.upvote, name="upvote"), # TODO
-    path('item/<uuid:pk>/downvote', views.downvote, name="downvote"), # TODO
+    path('item/<uuid:pk>/upvote', views.upvote, name="upvote"),
+    path('item/<uuid:pk>/downvote', views.downvote, name="downvote"),
     path('item/<uuid:pk>/edit', views.item_edit, name="edit"),
     path('item/<uuid:pk>/delete', views.item_delete, name="delete"),
     path('submit', views.submit, name="submit"),
@@ -27,4 +27,9 @@ urlpatterns = [
     path('robots.txt', views.robots_txt, name="robots_txt"),
     path('humans.txt', views.humans_txt, name="humans_txt"),
     path('bookmarklet', views.bookmarklet, name="bookmarklet"),
+
+    # Mixpanel API proxy
+    path('lib.min.js', views.js_lib_minified),
+    path('lib.js', views.js_lib),
+    path('proxy/<str:endpoint>/', views.api_request),
 ]

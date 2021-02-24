@@ -1,4 +1,5 @@
 #from django.core.signals import request_finished
+from django.contrib.auth.signals import user_logged_in
 from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.core.mail import send_mail
@@ -6,7 +7,7 @@ from django.core.mail import EmailMultiAlternatives
 
 from django.conf import settings
 
-
+from mixpanel import Mixpanel
 
 from .models import CustomUser, Invitation, EmailVerification, PasswordResetRequest
 
@@ -30,7 +31,7 @@ Would you like to accept {inviting_user}'s invite?
 
 Please sign up here: https://news.python.sc{url}
 
--- 
+--
 news.python.sc - A social news aggregator for the Python community.
 
 """.format(inviting_user=instance.inviting_user.username, url=instance.get_register_url())
@@ -51,7 +52,7 @@ def create_verification(sender, instance, created, **kwargs):
                 verified = any([i.verified for i in verifications])
                 # create_v = not verified
                 create_v = False
-            
+
             if create_v:
                 verification = EmailVerification(user=instance, email=instance.email)
                 verification.save()
@@ -66,7 +67,7 @@ Please confirm your email address here:
 
 https://news.python.sc{url}
 
--- 
+--
 news.python.sc - A social news aggregator for the Python community.
 
 """.format(url=instance.get_verify_url())
@@ -85,7 +86,7 @@ Please confirm your email address here:
 
 https://news.python.sc{url}
 
--- 
+--
 news.python.sc - A social news aggregator for the Python community.
 
 """.format(url=instance.get_verify_url())
@@ -93,3 +94,13 @@ news.python.sc - A social news aggregator for the Python community.
         msg = EmailMultiAlternatives(subject, text_content, from_email, [to])
         #msg.attach_alternative(html_content, "text/html")
         msg.send()
+
+@receiver(user_logged_in)
+def identify_with_mixpanel(sender, user, request, **kwargs):
+    mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN)
+    session_id = request.COOKIES["sess"]
+    mp.track(session_id, "$identify", {
+        "$identified_id": user.get_username(),
+        "$anon_id": session_id,
+    })
+    mp.track(session_id, "Logged in")
