@@ -6,12 +6,11 @@ import uuid
 import django
 from django.conf import settings
 
-from mixpanel import Mixpanel
+from mixpanel import Mixpanel, Consumer
 
+mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN, Consumer(verify_cert=False))
 
 def mixpanel_middleware(get_response):
-
-    mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN)
 
     def _get_client_ip(request):
         if 'HTTP_X_FORWARDED_FOR' in request.META:

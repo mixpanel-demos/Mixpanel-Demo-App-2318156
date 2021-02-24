@@ -45,8 +45,9 @@ from django.views.decorators.cache import cache_page
 
 from django.db import connection
 
-from mixpanel import Mixpanel
-mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN)
+from mixpanel import Mixpanel, Consumer
+
+mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN, Consumer(verify_cert=False))
 
 def _one_page_back(request):
     page = int(request.GET.get('p', 0))

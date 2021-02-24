@@ -7,10 +7,11 @@ from django.core.mail import EmailMultiAlternatives
 
 from django.conf import settings
 
-from mixpanel import Mixpanel
+from mixpanel import Mixpanel, Consumer
 
 from .models import CustomUser, Invitation, EmailVerification, PasswordResetRequest
 
+mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN, Consumer(verify_cert=False))
 
 @receiver(pre_save)
 def lower_email_addresses(sender, instance, **kwargs):
@@ -97,10 +98,9 @@ news.python.sc - A social news aggregator for the Python community.
 
 @receiver(user_logged_in)
 def identify_with_mixpanel(sender, user, request, **kwargs):
-    mp = Mixpanel(settings.MIXPANEL_PROJECT_TOKEN)
     session_id = request.COOKIES["sess"]
-    mp.track(session_id, "$identify", {
+    mixpanel_instance.track(session_id, "$identify", {
         "$identified_id": user.get_username(),
         "$anon_id": session_id,
     })
-    mp.track(session_id, "Logged in")
+    mixpanel_instance.track(session_id, "Logged in")
