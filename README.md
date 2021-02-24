@@ -1,36 +1,10 @@
 
-# pythonic-news
-A Hacker News lookalike written in Python/Django, powering [https://news.python.sc](https://news.python.sc)
+# data-news
+A Hacker News lookalike written in Python/Django instrumented with Mixpanel. As you use the application, data will be sent to your Mixpanel demo project that you have full control over.
 
+# How to run
+1. Go to https://repl.it/github/mixpanel-demos/data-news
+2. Click "Run" to start the app.
 
-
-[![screenshot](http://cdn.sebastiansteins.com/screenshot-news-python-sc.png "Screenshot")](https://news.python.sc)
-
-
-## Setup for local development
-
-### Set up virtual environment
-```shell script
-python -m venv venv/
-source venv/bin/activate
-```
-
-### Install Dependencies
-```shell script
-pip install -r requirements.txt
-```
-
-### Migrate Database
-```shell script
-python manage.py migrate
-```
-
-### Extra setup work
-* Set ```DEBUG=True``` if necessary
-* Add ```127.0.0.1``` to ```ALLOWED_HOSTS```
-
-### Run Django Server
-```shell script
-python manage.py runserver
-```
-Now you can access the website at ```127.0.0.1:8000```.
+# credits
+This app was forked from https://github.com/sebst/pythonic-news
